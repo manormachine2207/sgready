@@ -1,0 +1,99 @@
+blueprint:
+  name: SG Ready Steuerung für Stiebel Eltron Heizung
+  description: >-
+    Steuert den SG Ready Eingang der Stiebel Eltron Wärmepumpe basierend auf Jahreszeit, Strompreis, PV-Produktion und Batteriestand.
+  domain: automation
+  input:
+    sg_ready_switch:
+      name: SG Ready Switch
+      description: "Der Switch für den SG Ready Eingang der Stiebel Eltron Heizung."
+      selector:
+        entity:
+          domain: switch
+
+    electricity_price:
+      name: Strompreis
+      description: "Sensor für den aktuellen Strompreis."
+      selector:
+        entity:
+          domain: sensor
+
+    pv_power:
+      name: PV Produktion
+      description: "Sensor für die aktuelle PV-Leistung in W."
+      selector:
+        entity:
+          domain: sensor
+
+    battery_soc:
+      name: Batterieladestand
+      description: "Sensor für den Ladestand der Batterie in %."
+      selector:
+        entity:
+          domain: sensor
+
+    outdoor_temp:
+      name: Außentemperatur
+      description: "Sensor für die Außentemperatur."
+      selector:
+        entity:
+          domain: sensor
+
+triggers:
+  - trigger:
+      platform: numeric_state
+      entity_id: !input 'electricity_price'
+      below: 0.20
+  - trigger:
+      platform: numeric_state
+      entity_id: !input 'pv_power'
+      above: 2000
+  - trigger:
+      platform: numeric_state
+      entity_id: !input 'battery_soc'
+      above: 20
+
+conditions:
+  # Winterbedingungen: September bis März
+  - condition: template
+    value_template: >
+      {% set current_month = now().month %}
+      {{ current_month in [9, 10, 11, 12, 1, 2, 3] }}
+    alias: Winter
+  - condition: numeric_state
+    entity_id: !input 'electricity_price'
+    below: 0.20
+    alias: Günstiger Strompreis im Winter
+  - condition: numeric_state
+    entity_id: !input 'battery_soc'
+    above: 20
+    alias: Genügend Batterieladestand im Winter
+
+  # Sommerbedingungen: April bis August
+  - condition: template
+    value_template: >
+      {% set current_month = now().month %}
+      {{ current_month in [4, 5, 6, 7, 8] }}
+    alias: Sommer
+  - condition: numeric_state
+    entity_id: !input 'pv_power'
+    above: 2000
+    alias: Hohe PV-Produktion im Sommer
+  - condition: numeric_state
+    entity_id: !input 'electricity_price'
+    below: 0.20
+    alias: Günstiger Strompreis im Sommer
+  - condition: numeric_state
+    entity_id: !input 'battery_soc'
+    above: 20
+    alias: Genügend Batterieladestand im Sommer
+
+actions:
+  - service: switch.turn_on
+    target:
+      entity_id: !input 'sg_ready_switch'
+  - service: switch.turn_off
+    target:
+      entity_id: !input 'sg_ready_switch'
+
+mode: single
