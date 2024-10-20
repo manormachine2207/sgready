@@ -40,18 +40,15 @@ blueprint:
           domain: sensor
 
 triggers:
-  - trigger:
-      platform: numeric_state
-      entity_id: !input 'electricity_price'
-      below: 0.20
-  - trigger:
-      platform: numeric_state
-      entity_id: !input 'pv_power'
-      above: 2000
-  - trigger:
-      platform: numeric_state
-      entity_id: !input 'battery_soc'
-      above: 20
+  - platform: numeric_state
+    entity_id: !input 'electricity_price'
+    below: 0.20
+  - platform: numeric_state
+    entity_id: !input 'pv_power'
+    above: 2000
+  - platform: numeric_state
+    entity_id: !input 'battery_soc'
+    above: 20
 
 conditions:
   # Winterbedingungen: September bis März
